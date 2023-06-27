@@ -3,7 +3,7 @@ it("cy.setCookie() - set a browser cookie", () => {
 
   cy.getCookies().should("be.empty");
 
-  cy.setCookie("foo", "barr");
+  cy.setCookie("foo", "barrr");
 
   // cy.getCookie() yields a cookie object
 

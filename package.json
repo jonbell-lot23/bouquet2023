@@ -22,7 +22,7 @@
     "rss": "^1.2.2"
   },
   "devDependencies": {
-    "@replayio/cypress": "^1.0.2",
+    "@replayio/cypress": "^1.0.4",
     "@tailwindcss/typography": "^0.5.2",
     "@testing-library/cypress": "^9.0.0",
     "autoprefixer": "^10.4.2",
