@@ -17,7 +17,7 @@ export default function Home(): JSX.Element {
           background: "#EFF3E4",
         }}
       >
-        <img src="/bouquet.png" alt="bouquet" className="h-32" />
+        <img src="/bouquet.png" alt="bouquet!" className="h-32" />
       </div>
     </>
   );
