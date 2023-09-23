@@ -1,14 +1,14 @@
 import { defineConfig } from 'cypress';
-import * as replay from '@replayio/cypress';
+import replay from '@replayio/cypress';
 
 export default defineConfig({
+  projectId: 'yktsmq',
   e2e: {
-    setupNodeEvents(on, config) {
-      replay.default(on, config);
+    setupNodeEvents: (on, config) => {
+      // Install the replay plugin
+      replay(on, config);
+
       return config;
     },
-  }
+  },
 });
-
-
-
