@@ -34,18 +34,19 @@ export default async function handler(
       currentDate.setHours(0, 0, 0, 0);
 
       if (weekEndDate < currentDate) {
-        try {
-          const response = await fetch(
-            `${
-              process.env.API_BASE_URL
-            }/api/getWeeklyDigest?user=${user}&startDate=${weekStartDate.toISOString()}&endDate=${weekEndDate.toISOString()}`
-          );
 
-          if (!response.ok) {
-            throw new Error(
-              `API request failed with status ${response.status}`
-            );
-          }
+        console.log(`Processing week: ${week}, Start Date: ${weekStartDate.toISOString()}, End Date: ${weekEndDate.toISOString()}`);
+
+
+        try {
+          const apiUrl = `${process.env.API_BASE_URL}/api/getWeeklyDigest?user=${user}&startDate=${weekStartDate.toISOString()}&endDate=${weekEndDate.toISOString()}`;
+    console.log(`Fetching from URL: ${apiUrl}`);
+
+    const response = await fetch(apiUrl);
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
 
           const bouquets = await response.json();
 
