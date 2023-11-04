@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import RSS from "rss";
-import fetch from "node-fetch";
-import { encode } from "entities";
+import fetch from 'node-fetch';
+import { encode } from 'entities';
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,11 +10,8 @@ export default async function handler(
   try {
     const { user } = req.query;
     const now = new Date();
-    const startDate = new Date("2023-03-04");
-    const totalWeeks = Math.ceil(
-      (now.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
-    );
-
+    const startDate = new Date("2023-03-04"); // Define the start date for your weekly digest
+    const twoWeeksAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14);
     const feed = new RSS({
       title: `${user}'s weekly bouquet`,
       description: "A weekly digest of bouquets",
@@ -23,61 +20,45 @@ export default async function handler(
       pubDate: now.toISOString(),
     });
 
-    for (let week = 0; week <= totalWeeks; week++) {
+    const startWeek = Math.floor(
+      (twoWeeksAgo.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+    );
+
+    for (let week = startWeek; week <= startWeek + 1; week++) {
       const weekStartDate = new Date(startDate);
       weekStartDate.setDate(weekStartDate.getDate() + 7 * week);
       const weekEndDate = new Date(weekStartDate);
       weekEndDate.setDate(weekStartDate.getDate() + 6);
 
-      // Get the current date without time
       const currentDate = new Date();
       currentDate.setHours(0, 0, 0, 0);
 
       if (weekEndDate < currentDate) {
+        const apiUrl = `${process.env.API_BASE_URL}/api/getWeeklyDigest?user=${user}&startDate=${weekStartDate.toISOString()}&endDate=${weekEndDate.toISOString()}`;
+        const response = await fetch(apiUrl);
 
-        console.log(`Processing week: ${week}, Start Date: ${weekStartDate.toISOString()}, End Date: ${weekEndDate.toISOString()}`);
-
-
-        try {
-          const apiUrl = `${process.env.API_BASE_URL}/api/getWeeklyDigest?user=${user}&startDate=${weekStartDate.toISOString()}&endDate=${weekEndDate.toISOString()}`;
-    console.log(`Fetching from URL: ${apiUrl}`);
-
-    const response = await fetch(apiUrl);
-
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-
-          const bouquets = await response.json();
-
-          if (bouquets.length === 0) {
-            continue;
-          }
-
-          const digestContent = bouquets
-            .map((bouquet) => `${bouquet.emoji} ${encode(bouquet.description)}`)
-            .join("&#10;");
-
-          const postDate = weekEndDate; // Use the weekStartDate as the post date
-
-          feed.item({
-            title: `@${user}'s weekly bouquet - ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,
-            description: digestContent,
-            url: `${
-              process.env.SITE_URL
-            }/user/${user}/${postDate.toISOString()}`,
-            guid: `${
-              process.env.SITE_URL
-            }/user/${user}/${postDate.toISOString()}`, // Add a unique guid based on the URL and the post date
-            author: user,
-            date: postDate, // Use the post date instead of the end date
-          });
-        } catch (error) {
-          console.error(
-            `Error fetching weekly digest for week ${week}:`,
-            error
-          );
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
         }
+
+        const bouquets = await response.json();
+
+        if (bouquets.length === 0) {
+          continue;
+        }
+
+        const digestContent = bouquets
+          .map((bouquet) => `${bouquet.emoji} ${encode(bouquet.description)}`)
+          .join("&#10;");
+
+        feed.item({
+          title: `@${user}'s weekly bouquet - Week ${week}: ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,
+          description: digestContent,
+          url: `${process.env.SITE_URL}/user/${user}/${weekStartDate.toISOString()}`,
+          guid: `${process.env.SITE_URL}/user/${user}/${weekStartDate.toISOString()}`,
+          author: user,
+          date: weekStartDate.toISOString(),
+        });
       }
     }
 
