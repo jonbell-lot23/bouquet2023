@@ -1,0 +1,7 @@
+[install]
+# Use the exact versions specified in package.json
+exact = true
+
+[install.cache]
+# Enable the global cache for dependencies
+enabled = true 

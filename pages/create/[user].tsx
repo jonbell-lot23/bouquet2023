@@ -1,10 +1,107 @@
 import Head from "next/head";
 import Image from "next/image";
 import styles from "../../styles/bouquet.module.css";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Recent from "./recent";
 import { useRouter } from "next/router";
 // ... (import statements and interface definitions)
+
+// Emoji Picker component that fetches emojis from the database
+const EmojiPicker = ({
+  onEmojiClick,
+}: {
+  onEmojiClick: (emoji: string) => void;
+}) => {
+  const [emojis, setEmojis] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dbStatus, setDbStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch the most recent emojis from the database
+    const fetchEmojis = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setDbStatus(null);
+
+        const response = await fetch("/api/getCommonEmojis");
+        if (response.ok) {
+          const data = await response.json();
+
+          // Check if the response is the new format with error information
+          if (data && typeof data === "object" && "emojis" in data) {
+            setEmojis(data.emojis);
+            if (data.error) {
+              setDbStatus(data.error);
+              console.warn("Database issue:", data.error, data.details);
+            }
+          } else if (Array.isArray(data)) {
+            // Old format - just an array of emojis
+            setEmojis(data);
+            if (data.length === 0) {
+              setError("No emojis found in the database");
+            }
+          } else {
+            console.error("Unexpected response format:", data);
+            setError("Received unexpected data format from server");
+          }
+        } else {
+          try {
+            const errorData = await response.json();
+            console.error("Failed to fetch emojis:", errorData);
+            setError(
+              `Failed to fetch emojis: ${errorData.message || "Unknown error"}`
+            );
+          } catch (e) {
+            setError(
+              `Failed to fetch emojis: ${response.status} ${response.statusText}`
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching emojis:", error);
+        setError("Error connecting to the server");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmojis();
+  }, []);
+
+  if (loading) {
+    return <div className={styles.emojiPicker}>Loading emojis...</div>;
+  }
+
+  if (error) {
+    return <div className={styles.emojiPicker}>{error}</div>;
+  }
+
+  if (emojis.length === 0) {
+    return <div className={styles.emojiPicker}>No emojis found</div>;
+  }
+
+  return (
+    <div className={styles.emojiPicker}>
+      {dbStatus && (
+        <div className={styles.dbStatus}>
+          <small>{dbStatus}</small>
+        </div>
+      )}
+      {emojis.map((emoji, index) => (
+        <button
+          key={index}
+          className={styles.emojiButton}
+          onClick={() => onEmojiClick(emoji)}
+          type="button"
+        >
+          {emoji}
+        </button>
+      ))}
+    </div>
+  );
+};
 
 interface TextField {
   description: string;
@@ -33,6 +130,20 @@ export default function Home(): React.ReactNode {
 
   const [bouquets, setBouquets] = useState<Bouquet[]>([]);
 
+  // Handle emoji click from the picker
+  const handleEmojiClick = (emoji: string) => {
+    // Update the text field with the selected emoji
+    setTextField({
+      ...textField,
+      description: textField.description
+        ? `${emoji} ${textField.description
+            .replace(textField.emoji, "")
+            .trim()}`
+        : emoji,
+      emoji: emoji,
+    });
+  };
+
   const handleInput = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;
 
@@ -48,12 +159,14 @@ export default function Home(): React.ReactNode {
     }
 
     // Check if the input value contains an emoji
-    const hasEmoji = /\p{Emoji}/u.test(value);
+    // Using a different approach to detect emojis to avoid the ES6 flag issue
+    const emojiRegex =
+      /[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27FF]|[\u2300-\u23FF]|[\u2B50-\u2B55]/g;
+    const hasEmoji = emojiRegex.test(value);
 
     // Find the first emoji in the string if it contains an emoji
     let newEmoji = textField.emoji;
     if (hasEmoji) {
-      const emojiRegex = /[\uD83C-\uDBFF\uDC00-\uDFFF]+/g;
       const emojis = value.match(emojiRegex);
       if (emojis) {
         newEmoji = emojis[0];
@@ -146,6 +259,9 @@ export default function Home(): React.ReactNode {
         />
       </Head>
       <div className={styles.container}>
+        {/* Emoji Picker */}
+        <EmojiPicker onEmojiClick={handleEmojiClick} />
+
         <div className={styles.textFieldWrapper}>
           <input
             className={styles.textField}
