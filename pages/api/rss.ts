@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import RSS from "rss";
-import fetch from 'node-fetch';
-import { encode } from 'entities';
+import fetch from "node-fetch";
+import { encode } from "entities";
 
 export default async function handler(
   req: NextApiRequest,
@@ -11,20 +11,33 @@ export default async function handler(
     const { user } = req.query;
     const now = new Date();
     const startDate = new Date("2023-03-04"); // Define the start date for your weekly digest
-    const twoWeeksAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14);
+    const fourWeeksAgo = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - 28
+    ); // Changed from 14 to 28 days
     const feed = new RSS({
       title: `${user}'s weekly bouquet`,
       description: "A weekly digest of bouquets",
-      feed_url: `${process.env.API_BASE_URL}/api/weeklyDigestRss?user=${user}`,
-      site_url: `${process.env.SITE_URL}/user/${user}`,
+      feed_url: `${
+        process.env.NODE_ENV === "development"
+          ? "http://localhost:3001"
+          : process.env.API_BASE_URL || "http://localhost:3001"
+      }/api/rss?user=${user}`,
+      site_url: `${
+        process.env.NODE_ENV === "development"
+          ? "http://localhost:3001"
+          : process.env.SITE_URL || "http://localhost:3001"
+      }/user/${user}`,
       pubDate: now.toISOString(),
     });
 
     const startWeek = Math.floor(
-      (twoWeeksAgo.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+      (fourWeeksAgo.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
     );
 
-    for (let week = startWeek; week <= startWeek + 1; week++) {
+    for (let week = startWeek; week <= startWeek + 3; week++) {
+      // Changed to include 4 weeks
       const weekStartDate = new Date(startDate);
       weekStartDate.setDate(weekStartDate.getDate() + 7 * week);
       const weekEndDate = new Date(weekStartDate);
@@ -34,7 +47,13 @@ export default async function handler(
       currentDate.setHours(0, 0, 0, 0);
 
       if (weekEndDate < currentDate) {
-        const apiUrl = `${process.env.API_BASE_URL}/api/getWeeklyDigest?user=${user}&startDate=${weekStartDate.toISOString()}&endDate=${weekEndDate.toISOString()}`;
+        // Use localhost:3001 if in development mode or API_BASE_URL isn't set
+        const baseUrl =
+          process.env.NODE_ENV === "development"
+            ? "http://localhost:3001"
+            : process.env.API_BASE_URL || "http://localhost:3001";
+
+        const apiUrl = `${baseUrl}/api/getWeeklyDigest?user=${user}&startDate=${weekStartDate.toISOString()}&endDate=${weekEndDate.toISOString()}`;
         const response = await fetch(apiUrl);
 
         if (!response.ok) {
@@ -54,8 +73,17 @@ export default async function handler(
         feed.item({
           title: `@${user}'s weekly bouquet - Week ${week}: ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,
           description: digestContent,
-          url: `${process.env.SITE_URL}/user/${user}/${weekStartDate.toISOString()}`,
-          guid: `${process.env.SITE_URL}/user/${user}/${weekStartDate.toISOString()}`,
+          // Use localhost:3001 if in development mode or SITE_URL isn't set
+          url: `${
+            process.env.NODE_ENV === "development"
+              ? "http://localhost:3001"
+              : process.env.SITE_URL || "http://localhost:3001"
+          }/user/${user}/${weekStartDate.toISOString()}`,
+          guid: `${
+            process.env.NODE_ENV === "development"
+              ? "http://localhost:3001"
+              : process.env.SITE_URL || "http://localhost:3001"
+          }/user/${user}/${weekStartDate.toISOString()}`,
           author: user,
           date: weekStartDate.toISOString(),
         });

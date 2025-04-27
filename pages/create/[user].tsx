@@ -16,6 +16,7 @@ const EmojiPicker = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dbStatus, setDbStatus] = useState<string | null>(null);
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     // Fetch the most recent emojis from the database
@@ -25,7 +26,8 @@ const EmojiPicker = ({
         setError(null);
         setDbStatus(null);
 
-        const response = await fetch("/api/getCommonEmojis");
+        const limit = showMore ? 48 : 12; // 4x more emojis when showing more
+        const response = await fetch(`/api/getCommonEmojis?limit=${limit}`);
         if (response.ok) {
           const data = await response.json();
 
@@ -68,7 +70,7 @@ const EmojiPicker = ({
     };
 
     fetchEmojis();
-  }, []);
+  }, [showMore]);
 
   if (loading) {
     return <div className={styles.emojiPicker}>Loading emojis...</div>;
@@ -99,6 +101,13 @@ const EmojiPicker = ({
           {emoji}
         </button>
       ))}
+      <button
+        className={styles.moreButton}
+        onClick={() => setShowMore(!showMore)}
+        type="button"
+      >
+        {showMore ? 'Less' : 'More'}
+      </button>
     </div>
   );
 };

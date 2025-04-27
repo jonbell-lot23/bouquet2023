@@ -44,6 +44,21 @@
   background-color: #e0e0e0;
 }
 
+.moreButton {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  margin-left: 5px;
+}
+
+.moreButton:hover {
+  background-color: #e0e0e0;
+}
+
 .bouquetList {
   display: flex;
   flex-direction: column;
@@ -120,6 +135,11 @@
   .emojiButton {
     font-size: 24px;
     padding: 8px;
+  }
+  
+  .moreButton {
+    font-size: 16px;
+    padding: 8px 12px;
   }
 
   .bouquetList {
